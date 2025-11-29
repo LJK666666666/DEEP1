@@ -11,7 +11,7 @@ import os
 
 '''train and test'''
 net_name = 'resnet50' # support 'alexnet', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'inception_v3'
-num_classes = 6 # num of classes
+num_classes = 10 # num of classes (原6类 + 补充5类 - trash)
 traindata_dir = os.path.join(os.getcwd(), 'GarbageData/train') # the images dir for train
 testdata_dir = os.path.join(os.getcwd(), 'GarbageData/test') # the images dir for test
 learning_rate = 2e-4 # learning rate for adam
