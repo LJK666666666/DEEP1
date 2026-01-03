@@ -1,3 +1,9 @@
 garbageClassifier-master/Garbage data/
 
 qt_deep_learning/smart_video/python_code/yolo-obj_last_renxing.weights
+
+*.pth
+
+*.pkl
+
+garbageClassifier-master/model_saved/

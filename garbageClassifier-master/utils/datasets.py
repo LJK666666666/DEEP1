@@ -38,7 +38,7 @@ class ImageFolder(Dataset):
 	def __getitem__(self, index):
 		image_path = self.image_paths[self.indexes[index]]
 		image_label = self.image_labels[self.indexes[index]]
-		image = Image.open(image_path).resize(self.image_size)
+		image = Image.open(image_path).convert('RGB').resize(self.image_size)
 		image = self.transform(image)
 		return image, image_label
 	def __len__(self):

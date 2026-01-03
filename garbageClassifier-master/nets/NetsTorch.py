@@ -10,16 +10,22 @@ Author:
 import torch
 import torchvision
 import torch.nn as nn
-
-# 导入本地带有 SE 注意力机制的 ResNet (思考题要求)
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from torchvision.models import resnet50 as se_resnet50
-from torchvision.models import resnet18 as se_resnet18
-from torchvision.models import resnet34 as se_resnet34
-from torchvision.models import resnet101 as se_resnet101
-from torchvision.models import resnet152 as se_resnet152
+
+# 导入本地带有 SE 注意力机制的 ResNet (思考题要求)
+# 使用 importlib 显式导入本地模块，避免与系统 torchvision 冲突
+import importlib.util
+_local_resnet_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'torchvision_backup', 'models', 'resnet.py')
+_spec = importlib.util.spec_from_file_location("local_resnet", _local_resnet_path)
+_local_resnet = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_local_resnet)
+
+se_resnet18 = _local_resnet.resnet18
+se_resnet34 = _local_resnet.resnet34
+se_resnet50 = _local_resnet.resnet50
+se_resnet101 = _local_resnet.resnet101
+se_resnet152 = _local_resnet.resnet152
 
 
 '''nets defined in the torchvision module.'''

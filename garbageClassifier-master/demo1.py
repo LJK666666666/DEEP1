@@ -8,6 +8,7 @@ Author:
 '''
 import os
 import sys
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
@@ -16,6 +17,13 @@ from PIL import Image
 # 获取当前脚本所在目录
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
+
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+SMART_VIDEO_DIR = os.path.join(PROJECT_ROOT, 'qt_deep_learning', 'smart_video')
+QT_TXT_DIR = os.path.join(SMART_VIDEO_DIR, 'txt')
+QT_FLAG_FILE = os.path.join(QT_TXT_DIR, 'flag.txt')
+QT_RESULT_FILE = os.path.join(QT_TXT_DIR, 'test.txt')
+QT_IMAGE_FILE = os.path.join(QT_TXT_DIR, 'file.txt')
 
 import config
 from utils.utils import loadClasses
@@ -165,12 +173,66 @@ def classify_image(image_path, weights_path=None):
     return classifier.classify(image_path)
 
 
+def _qt_set_flag(value: bool):
+    """写入 flag 文件供 Qt 轮询"""
+    if not os.path.isdir(QT_TXT_DIR):
+        return
+    Path(QT_FLAG_FILE).write_text('true' if value else 'false', encoding='utf-8')
+
+
+def _qt_write_result(message: str):
+    """写入识别结果供 Qt 显示"""
+    if not os.path.isdir(QT_TXT_DIR):
+        raise FileNotFoundError('未找到 qt_deep_learning/smart_video/txt 目录')
+    Path(QT_RESULT_FILE).write_text(message, encoding='utf-8')
+
+
+def _qt_read_image_path():
+    """从 file.txt 中读取 Qt 传入的图片路径"""
+    image_file = Path(QT_IMAGE_FILE)
+    if not image_file.exists():
+        raise FileNotFoundError('file.txt 不存在，请先在 Qt 界面选择图片')
+    raw_path = image_file.read_text(encoding='utf-8').strip()
+    if not raw_path:
+        raise ValueError('file.txt 中没有图片路径')
+    normalized = raw_path.replace('\\', os.sep).replace('/', os.sep)
+    return os.path.normpath(normalized)
+
+
+def run_qt_bridge():
+    """qt_deep_learning 方式交互：读取 txt，调用分类器，并写回结果"""
+    if not os.path.isdir(QT_TXT_DIR):
+        print('未找到 qt_deep_learning/smart_video/txt 目录，无法启用 Qt 模式')
+        return
+
+    _qt_set_flag(False)
+
+    try:
+        image_path = _qt_read_image_path()
+        classifier = GarbageClassifier()
+        result = classifier.classify(image_path)
+        if result['success']:
+            message = (
+                f"[物品类别]: {result['class_name']}  "
+                f"[垃圾分类]: {result['category']}  "
+                f"[置信度]: {result['confidence']:.4f}"
+            )
+        else:
+            message = f"识别失败: {result.get('message', '未知错误')}"
+        _qt_write_result(message)
+    except Exception as exc:
+        _qt_write_result(f"识别失败: {exc}")
+    finally:
+        _qt_set_flag(True)
+
+
 # 兼容原有命令行调用方式
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description="垃圾分类器")
     parser.add_argument('-i', '--image', dest='image', help='待分类的图片路径')
+    parser.add_argument('--qt-bridge', action='store_true', help='启用 qt_deep_learning txt 通信模式')
     args = parser.parse_args()
 
     if args.image:
@@ -183,3 +245,5 @@ if __name__ == '__main__':
             print(f"[置信度]: {result['confidence']:.4f}")
         else:
             print(f"识别失败: {result.get('message', '未知错误')}")
+    elif args.qt_bridge or not args.image:
+        run_qt_bridge()
